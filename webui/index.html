@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>群日报 · 独立页面</title>
+<style>
+  :root {
+    --bg-top: #f5f8ff; --bg-bottom: #e8eefb;
+    --card: #fff; --ink: #16233f; --body: #54668a; --muted: #8f9fbb;
+    --line: #e7edf9; --accent: #2f63e8; --accent-soft: #eaf1ff;
+    --ok: #1f9d63; --err: #d64545;
+    --shadow: 0 18px 46px rgba(38, 74, 160, .10);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--ink);
+    background:
+      radial-gradient(1200px 500px at 12% -10%, #dfe9ff 0%, rgba(223, 233, 255, 0) 60%),
+      linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+    font: 14px/1.65 "Microsoft YaHei", "PingFang SC", "Segoe UI", system-ui, sans-serif;
+  }
+  .page { max-width: 1220px; margin: 0 auto; padding: 30px 24px 26px; }
+
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+  .brand { display: flex; gap: 16px; align-items: flex-start; }
+  .brand-mark {
+    width: 54px; height: 54px; border-radius: 16px; color: #fff;
+    background: linear-gradient(145deg, #4b7dff, #2f63e8);
+    font-weight: 700; font-size: 15px; letter-spacing: .5px;
+    display: grid; place-items: center; box-shadow: 0 12px 24px rgba(47, 99, 232, .28);
+  }
+  .eyebrow { font-size: 11px; letter-spacing: 2.2px; color: var(--muted); font-weight: 600; }
+  h1 { margin: 2px 0 4px; font-size: 26px; letter-spacing: .5px; }
+  .sub { margin: 0; color: var(--body); font-size: 13px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .stat {
+    min-width: 92px; background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 8px 14px; display: flex; flex-direction: column; line-height: 1.25;
+    box-shadow: 0 8px 20px rgba(38, 74, 160, .05);
+  }
+  .stat-value { font-size: 18px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--muted); }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
+  .panel-head { display: flex; align-items: baseline; justify-content: space-between; padding: 16px 20px 0; }
+  .panel-head h2 { margin: 0; font-size: 15px; font-weight: 700; }
+  .muted { color: var(--muted); font-size: 12px; }
+
+  .controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 18px; padding: 18px 20px; margin-bottom: 18px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 11.5px; color: var(--muted); font-weight: 600; letter-spacing: .3px; }
+  select, input[type="date"] {
+    min-width: 200px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px;
+    background: #fbfcff; color: var(--ink); font: inherit;
+  }
+  select:focus, input:focus { outline: 2px solid #cfdcff; border-color: var(--accent); }
+  .actions { flex-direction: row; gap: 10px; margin-left: auto; }
+
+  .btn { border: 1px solid transparent; border-radius: 11px; padding: 10px 18px; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .btn.primary { background: linear-gradient(145deg, #4b7dff, #2f63e8); color: #fff; box-shadow: 0 10px 22px rgba(47, 99, 232, .26); }
+  .btn.ghost { background: var(--accent-soft); color: var(--accent); }
+  .btn.ghost:hover:not(:disabled) { background: #dfe9ff; }
+
+  .hint { flex: 1 1 100%; font-size: 12px; color: var(--muted); min-height: 16px; }
+  .hint[data-tone="error"] { color: var(--err); }
+  .hint[data-tone="ok"] { color: var(--ok); }
+
+  .columns { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start; }
+  .history { display: flex; flex-direction: column; max-height: 76vh; }
+  .history-list { padding: 12px 14px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .history-item {
+    text-align: left; border: 1px solid var(--line); background: #fafcff; border-radius: 12px;
+    padding: 10px 12px; cursor: pointer; font: inherit; color: var(--ink);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .history-item:hover { border-color: #c8d7ff; }
+  .history-item[data-active="true"] { border-color: var(--accent); background: var(--accent-soft); }
+  .history-item .row { display: flex; justify-content: space-between; gap: 8px; }
+  .history-item .date { font-weight: 700; }
+  .history-item .meta { font-size: 11.5px; color: var(--muted); }
+
+  .stage { display: flex; flex-direction: column; }
+  .stage-body { padding: 16px 20px 22px; display: grid; place-items: start center; max-height: 76vh; overflow: auto; }
+  .stage-body img {
+    width: 100%; max-width: 720px; border-radius: 14px; border: 1px solid var(--line);
+    box-shadow: 0 18px 40px rgba(38, 74, 160, .14); display: block;
+  }
+  .empty {
+    width: 100%; min-height: 320px; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 6px; color: var(--muted); border: 1px dashed #dbe4f7;
+    border-radius: 14px; text-align: center; padding: 20px;
+  }
+  .empty strong { color: var(--body); font-size: 15px; }
+
+  .foot { margin-top: 18px; display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%);
+    background: #1d2b47; color: #fff; padding: 11px 20px; border-radius: 999px;
+    font-size: 13px; box-shadow: 0 14px 30px rgba(20, 32, 60, .28); max-width: 80vw;
+  }
+  .toast[data-tone="error"] { background: #92242a; }
+  .toast[data-tone="ok"] { background: #10714a; }
+
+  /* 封面 */
+  .cover-body { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; padding: 14px 20px 18px; align-items: start; }
+  .cover-preview {
+    min-height: 148px; border-radius: 14px; border: 1px dashed #dbe4f7; background: #fafcff;
+    display: grid; place-items: center; overflow: hidden; color: var(--muted); font-size: 12.5px;
+    text-align: center; padding: 12px;
+  }
+  .cover-preview img { width: 100%; display: block; border-radius: 12px; }
+  .cover-controls { display: flex; flex-direction: column; gap: 10px; }
+  .file-btn { display: inline-block; text-align: center; cursor: pointer; }
+  .focus-grid { display: grid; grid-template-columns: repeat(3, 34px); gap: 6px; }
+  .focus-grid button {
+    width: 34px; height: 30px; border-radius: 8px; border: 1px solid var(--line);
+    background: #fbfcff; cursor: pointer; font-size: 11px; color: var(--muted); padding: 0;
+  }
+  .focus-grid button[data-active="true"] {
+    border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 700;
+  }
+  .cover-controls .range { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .cover-controls input[type="range"] { flex: 1; }
+
+  @media (max-width: 900px) {
+    .columns { grid-template-columns: 1fr; }
+    .cover-body { grid-template-columns: 1fr; }
+    .actions { margin-left: 0; }
+    .topbar { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">日报</div>
+      <div>
+        <div class="eyebrow">DAILY LOG · 群日报</div>
+        <h1>群日报</h1>
+        <p class="sub">把一天的热闹压成一张长图。选群、选日期，生成、预览、补发都在这。</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="stat"><span class="stat-value" id="stat-count">—</span><span class="stat-label">已生成</span></div>
+      <div class="stat"><span class="stat-value" id="stat-latest">—</span><span class="stat-label">最近一期</span></div>
+      <button class="btn ghost" id="btn-refresh" type="button">刷新</button>
+    </div>
+  </header>
+
+  <section class="panel controls">
+    <div class="field">
+      <label for="sel-group">群聊</label>
+      <select id="sel-group"></select>
+    </div>
+    <div class="field">
+      <label for="inp-date">日期</label>
+      <input id="inp-date" type="date">
+    </div>
+    <div class="field actions">
+      <button class="btn primary" id="btn-generate" type="button">生成并发送</button>
+      <button class="btn ghost" id="btn-preview" type="button">仅生成</button>
+    </div>
+    <div class="hint" id="conn-hint"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>立绘封面</h2>
+      <span class="muted" id="cover-meta">未设置</span>
+    </div>
+    <div class="cover-body">
+      <div class="cover-preview" id="cover-preview">
+        <span id="cover-empty">还没有上传。上传一张图会替换右上角的立绘（默认是鲸鱼女仆），不传就保持原样。</span>
+        <img id="cover-image" alt="封面预览" hidden>
+      </div>
+      <div class="cover-controls">
+        <label class="btn ghost file-btn">
+          上传封面
+          <input id="cover-file" type="file" accept="image/*" hidden>
+        </label>
+        <div>
+          <div class="muted" style="margin-bottom:6px">焦点（裁切位置）</div>
+          <div class="focus-grid" id="focus-grid"></div>
+        </div>
+        <label class="range">
+          <span>立绘框高度</span>
+          <input id="cover-height" type="range" min="200" max="380" step="10" value="300">
+          <span id="cover-height-text">300</span>
+        </label>
+        <button class="btn ghost" id="cover-delete" type="button">删除封面</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="columns">
+    <aside class="panel history">
+      <div class="panel-head"><h2>历史日报</h2><span class="muted" id="history-count"></span></div>
+      <div class="history-list" id="history-list"></div>
+    </aside>
+    <main class="panel stage">
+      <div class="panel-head"><h2 id="stage-title">海报预览</h2><span class="muted" id="stage-meta"></span></div>
+      <div class="stage-body">
+        <div class="empty" id="stage-empty">
+          <strong>还没有预览</strong>
+          <span>选个有消息的日子，点「仅生成」，第一次大概 10–60 秒。</span>
+        </div>
+        <img id="stage-image" alt="日报海报" hidden>
+      </div>
+    </main>
+  </section>
+
+  <footer class="foot">
+    <span id="foot-version">群日报</span>
+    <span id="foot-status">未连接</span>
+  </footer>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { groups: [], reports: [], activeKey: null, busy: false, objectUrl: null };
+
+let toastTimer = null;
+function toast(message, tone = 'info') {
+  const el = $('toast');
+  el.textContent = message || '';
+  el.dataset.tone = tone;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 4200);
+}
+
+function setHint(text, tone) {
+  const el = $('conn-hint');
+  el.textContent = text || '';
+  if (tone) el.dataset.tone = tone; else delete el.dataset.tone;
+}
+
+function fmtSize(bytes) {
+  if (!bytes) return '0 KB';
+  return bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+}
+
+async function api(path, options = {}) {
+  const response = await fetch(path, options);
+  if (path.startsWith('api/image')) {
+    if (!response.ok) throw new Error('海报读取失败（HTTP ' + response.status + '）');
+    return response.blob();
+  }
+  let payload = null;
+  try { payload = await response.json(); } catch (error) { payload = null; }
+  if (!response.ok) {
+    const detail = (payload && (payload.detail || payload.message)) || ('HTTP ' + response.status);
+    throw new Error(detail);
+  }
+  if (payload && payload.code && payload.code !== 200) {
+    throw new Error(payload.message || ('请求失败（' + payload.code + '）'));
+  }
+  return payload ? payload.data : payload;
+}
+
+function renderGroups() {
+  const select = $('sel-group');
+  select.innerHTML = '';
+  if (!state.groups.length) {
+    select.innerHTML = '<option value="">插件里还没有配置群号</option>';
+    select.disabled = true;
+    return;
+  }
+  select.disabled = false;
+  state.groups.forEach((group) => {
+    const option = document.createElement('option');
+    option.value = group.group_id;
+    option.textContent = group.name + ' · ' + group.group_id;
+    select.appendChild(option);
+  });
+}
+
+function renderHistory() {
+  const box = $('history-list');
+  box.innerHTML = '';
+  $('history-count').textContent = state.reports.length ? state.reports.length + ' 条' : '';
+  if (!state.reports.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.style.minHeight = '160px';
+    empty.innerHTML = '<strong>还没有日报</strong><span>生成第一张之后会按日期排在里。</span>';
+    box.appendChild(empty);
+    return;
+  }
+  state.reports.forEach((report) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'history-item';
+    item.dataset.active = String(report.slug + ':' + report.date === state.activeKey);
+    const row = document.createElement('div');
+    row.className = 'row';
+    const date = document.createElement('span');
+    date.className = 'date';
+    date.textContent = report.date;
+    const size = document.createElement('span');
+    size.className = 'meta';
+    size.textContent = fmtSize(report.size);
+    row.append(date, size);
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+    meta.textContent = (report.group_name || '未知群') + ' · ' + (report.mtime_text || '');
+    item.append(row, meta);
+    item.addEventListener('click', () => showReport(report));
+    box.appendChild(item);
+  });
+}
+
+function revokeObjectUrl() {
+  if (state.objectUrl) { URL.revokeObjectURL(state.objectUrl); state.objectUrl = null; }
+}
+
+async function showReport(report) {
+  state.activeKey = report.slug + ':' + report.date;
+  renderHistory();
+  $('stage-title').textContent = report.date + ' · ' + (report.group_name || '');
+  $('stage-meta').textContent = fmtSize(report.size) + ' · ' + (report.mtime_text || '');
+  $('stage-empty').hidden = true;
+  $('stage-image').hidden = true;
+  revokeObjectUrl();
+  try {
+    const blob = await api('api/image?slug=' + encodeURIComponent(report.slug) + '&date=' + encodeURIComponent(report.date));
+    state.objectUrl = URL.createObjectURL(blob);
+    $('stage-image').src = state.objectUrl;
+    $('stage-image').hidden = false;
+  } catch (error) {
+    $('stage-empty').hidden = false;
+    $('stage-empty').innerHTML = '<strong>海报没取到</strong><span>' + error.message + '</span>';
+  }
+}
+
+function showLatest() {
+  if (!state.reports.length) {
+    $('stage-title').textContent = '海报预览';
+    $('stage-meta').textContent = '';
+    $('stage-empty').hidden = false;
+    $('stage-empty').innerHTML = '<strong>还没有预览</strong><span>选个有消息的日子，点「仅生成」，第一次大概 10–60 秒。</span>';
+    $('stage-image').hidden = true;
+    return;
+  }
+  showReport(state.reports[0]);
+}
+
+async function loadState() {
+  const data = (await api('api/state')) || {};
+  state.groups = data.groups || [];
+  $('stat-count').textContent = String(data.reports || 0);
+  $('stat-latest').textContent = data.latest ? data.latest.date : '—';
+  $('foot-version').textContent = '群日报 v' + (data.version || '');
+  renderGroups();
+}
+
+async function loadReports(selectLatest) {
+  const data = (await api('api/reports?limit=60')) || [];
+  state.reports = Array.isArray(data) ? data : [];
+  renderHistory();
+  if (selectLatest && state.reports.length) $('inp-date').value = state.reports[0].date;
+  showLatest();
+}
+
+async function refresh(selectLatest) {
+  try {
+    await loadState();
+    await loadReports(selectLatest);
+    setHint('就绪', 'ok');
+    $('foot-status').textContent = '已连接本机插件接口';
+  } catch (error) {
+    setHint('加载失败：' + error.message, 'error');
+    $('foot-status').textContent = '连接失败';
+  }
+}
+
+async function generate(send) {
+  if (state.busy) return;
+  const groupId = $('sel-group').value;
+  if (!groupId) { setHint('插件配置里没有群号，先填 general.groups', 'error'); return; }
+  const day = $('inp-date').value;
+  if (!day) { setHint('先选日期', 'error'); return; }
+  if (send && !confirm('「生成并发送」会立刻把海报发到群里，确定吗？')) return;
+
+  state.busy = true;
+  $('btn-generate').disabled = true;
+  $('btn-preview').disabled = true;
+  const started = Date.now();
+  const tick = setInterval(() => {
+    setHint((send ? '正在生成并发送' : '正在生成海报') + '… ' + Math.round((Date.now() - started) / 1000) + 's');
+  }, 1000);
+
+  try {
+    const data = (await api('api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group_id: groupId, date: day, send: send, regenerate: true }),
+    })) || {};
+    setHint(data.message || '完成', data.ok ? 'ok' : 'error');
+    toast(data.message || '完成', data.ok ? 'ok' : 'error');
+    await loadState();
+    await loadReports(true);
+    const target = state.reports.find((report) => report.date === day);
+    if (target) showReport(target);
+  } catch (error) {
+    setHint('生成失败：' + error.message, 'error');
+    toast(error.message || '生成失败', 'error');
+  } finally {
+    clearInterval(tick);
+    state.busy = false;
+    $('btn-generate').disabled = false;
+    $('btn-preview').disabled = false;
+  }
+}
+
+$('btn-refresh').addEventListener('click', () => refresh(false));
+$('btn-generate').addEventListener('click', () => generate(true));
+$('btn-preview').addEventListener('click', () => generate(false));
+
+const now = new Date();
+const pad = (value) => String(value).padStart(2, '0');
+$('inp-date').value = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+
+/* ---------------- 封面 ---------------- */
+
+const FOCUS_CELLS = [
+  ['top-left', '↖'], ['top', '↑'], ['top-right', '↗'],
+  ['left', '←'], ['center', '·'], ['right', '→'],
+  ['bottom-left', '↙'], ['bottom', '↓'], ['bottom-right', '↘'],
+];
+
+let coverState = { exists: false, focus: 'center', height: 300 };
+
+function renderFocusGrid() {
+  const box = $('focus-grid');
+  box.innerHTML = '';
+  FOCUS_CELLS.forEach(([value, label]) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = label;
+    btn.title = value;
+    btn.dataset.value = value;
+    btn.dataset.active = String(coverState.focus === value);
+    btn.addEventListener('click', () => saveCoverParams({ focus: value }));
+    box.appendChild(btn);
+  });
+}
+
+async function loadCover() {
+  try {
+    const data = (await api('api/cover')) || {};
+    coverState = {
+      exists: Boolean(data.exists),
+      focus: data.focus || 'center',
+      height: Number(data.height) || 300,
+    };
+    if (coverState.exists) {
+      $('cover-image').src = 'api/cover/image?v=' + Date.now();
+      $('cover-image').hidden = false;
+      $('cover-empty').hidden = true;
+      $('cover-meta').textContent = '已设置 · ' + coverState.height + 'px' + (data.updated_at ? ' · ' + data.updated_at : '');
+    } else {
+      $('cover-image').hidden = true;
+      $('cover-empty').hidden = false;
+      $('cover-meta').textContent = '未设置';
+    }
+    $('cover-height').value = String(coverState.height);
+    $('cover-height-text').textContent = String(coverState.height);
+    renderFocusGrid();
+  } catch (error) {
+    $('cover-meta').textContent = '读取失败';
+  }
+}
+
+async function saveCoverParams(patch) {
+  try {
+    await api('api/cover', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    await loadCover();
+    toast('封面参数已保存', 'ok');
+  } catch (error) {
+    toast('保存失败：' + error.message, 'error');
+  }
+}
+
+$('cover-file').addEventListener('change', async (event) => {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  $('cover-meta').textContent = '上传中…';
+  try {
+    const response = await fetch('api/cover', {
+      method: 'POST',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+    let payload = null;
+    try { payload = await response.json(); } catch (error) { payload = null; }
+    if (!response.ok) throw new Error((payload && (payload.detail || payload.message)) || ('HTTP ' + response.status));
+    await loadCover();
+    toast('封面已更新，下一条日报生效', 'ok');
+  } catch (error) {
+    $('cover-meta').textContent = '上传失败';
+    toast('上传失败：' + error.message, 'error');
+  } finally {
+    event.target.value = '';
+  }
+});
+
+$('cover-height').addEventListener('input', (event) => {
+  $('cover-height-text').textContent = event.target.value;
+});
+$('cover-height').addEventListener('change', (event) => {
+  saveCoverParams({ height: Number(event.target.value) });
+});
+
+$('cover-delete').addEventListener('click', async () => {
+  if (!coverState.exists) return;
+  if (!confirm('删除封面？日报会回到默认页眉。')) return;
+  try {
+    await api('api/cover', { method: 'DELETE' });
+    await loadCover();
+    toast('封面已删除', 'ok');
+  } catch (error) {
+    toast('删除失败：' + error.message, 'error');
+  }
+});
+
+loadCover();
+refresh(true);
+</script>
+</body>
+</html>

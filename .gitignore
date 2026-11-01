@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 构建产物
+dist/
+preview_demo.png
+preview_fallback.png
+
+# 测试临时目录
+_tmp_*/
+tests/_tmp_*/
+*.tmp
+
+# 本地数据（不应进仓库）
+data/
