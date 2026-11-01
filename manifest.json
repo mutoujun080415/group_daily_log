@@ -62,5 +62,8 @@
   "python_dependencies": [
     "pillow>=10.0.0"
   ],
-  "dependencies_required": true
+  "dependencies_required": true,
+  "repository_url": "https://github.com/mutoujun080415/group_daily_log",
+  "homepage": "https://github.com/mutoujun080415/group_daily_log",
+  "icon_url": "https://github.com/mutoujun080415/group_daily_log/raw/main/icon.png"
 }
